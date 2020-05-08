@@ -8,6 +8,8 @@
     #include <htc.h>        /* HiTech General Include File */
 #endif
 
+
+
 // CONFIG
 #pragma config FOSC = INTOSCIO  // Oscillator Selection bits (INTOSC oscillator: I/O function on RA6/OSC2/CLKOUT pin, I/O function on RA7/OSC1/CLKIN)
 #pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
