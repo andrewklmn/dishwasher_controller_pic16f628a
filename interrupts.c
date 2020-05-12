@@ -36,11 +36,24 @@ void __interrupt () my_isr_routine (void) {
     } else if (RBIF){
         if (BUTTON_OF_POWER==PRESSED) {
             if(eeprom_read(SYSTEM_STATE)==IS_ON){
-                eeprom_write(SYSTEM_STATE,IS_OFF);
+                if (SENSOR_OF_WATER_LEVEL==IS_ON) {
+                    // if POWER OFF was pressed when water inside - flushing cycle
+                    eeprom_write(FILLING_COUNTER,FILLING_TICKS_AMOUNT);
+                    eeprom_write(WORK_CYCLE_COUNTER,FLUSHING_TIME);
+                    eeprom_write(DRAINING_COUNTER,0);
+                    eeprom_write(LAUNDRY_STATE,FLUSHING);
+                } else {
+                    eeprom_write(SYSTEM_STATE,IS_OFF);
+                };
+            
             } else {
                 eeprom_write(SYSTEM_STATE,IS_ON);
+                if (SENSOR_OF_WATER_LEVEL==IS_ON) {
+                    eeprom_write(LAUNDRY_STATE,ERROR);
+                } else {
+                    eeprom_write(LAUNDRY_STATE,ADD_DETERGENT);
+                };
             };
-            eeprom_write(LAUNDRY_STATE,ADD_DETERGENT);
             eeprom_write(DISHWASHER_PAUSED_FLAG, IS_OFF);
             
         } else if (BUTTON_OF_START_PAUSE==PRESSED) {
@@ -49,7 +62,11 @@ void __interrupt () my_isr_routine (void) {
                     // start washing cycle with defined timing
                     if (eeprom_read(DRAINING_COUNTER)>=DRAINING_TIME
                         && SENSOR_OF_WATER_ON_FLOOR==IS_OFF) {
-                        eeprom_write(LAUNDRY_STATE,ADD_DETERGENT);
+                        if (SENSOR_OF_WATER_LEVEL==IS_ON) {
+                            eeprom_write(DRAINING_COUNTER,0);
+                        } else {
+                            eeprom_write(LAUNDRY_STATE,ADD_DETERGENT);
+                        };
                     };
                 } else if (eeprom_read(LAUNDRY_STATE)==ADD_DETERGENT) {
                     // start washing cycle with defined timing

@@ -51,12 +51,14 @@
 #define FILLING_COUNTER         0x05
 
 // working cycles time definition in MIN
-#define DETERGENT_WASHING_TIME 10
-#define ACID_WASHING_TIME      5
-#define FLUSHING_TIME          5
-#define DRAINING_TIME          5
+#define DETERGENT_WASHING_TIME 3
+#define ACID_WASHING_TIME      3
+#define FLUSHING_TIME          3
+#define DRAINING_TIME          3
 
-#define FILLING_TICKS_AMOUNT   10
+#define FILLING_TICKS_AMOUNT   3
+
+#define CYCLES_IN_ONE_MINUTES  2
 
 __EEPROM_DATA(IS_OFF,0,IS_OFF,0x00,0x00,0x00,0x00,0x00);
 
@@ -74,8 +76,8 @@ enum laundry_state {
     ERROR
 };
 
-unsigned char temp;
-
+unsigned char cycle_counter = 0; /* one dispatch cycle = 0.5s*/
+unsigned char temp = 0;
 
 /******************************************************************************/
 /* User Function Prototypes                                                   */

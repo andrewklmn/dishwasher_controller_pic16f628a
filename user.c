@@ -57,15 +57,26 @@ void InitApp(void)
     INTCON = 0b10011000;
     INTEDG = 0; 
     
+    
+    if (SENSOR_OF_WATER_ON_FLOOR==IS_ON) {
+        eeprom_write(SYSTEM_STATE,IS_ON);
+        eeprom_write(LAUNDRY_STATE,ERROR);
+    };
+    
+    
     // check previous state after restore AC power
     switch(eeprom_read(LAUNDRY_STATE)) {
         case ADD_DETERGENT:
         case ADD_LEMON_ACID:
+        case COMPLETED:
             if (SENSOR_OF_WATER_LEVEL==IS_ON) {
+                eeprom_write(SYSTEM_STATE,IS_ON);
                 eeprom_write(LAUNDRY_STATE,ERROR);
             };
             break;
     };
+    
+    
 };
 
 void dispatch_buttons_leds_sensors(void) {
@@ -201,7 +212,11 @@ void dispatch_error_cycle(void){
             if (eeprom_read(DRAINING_COUNTER)<DRAINING_TIME) {
                 // drain is pending
                 STATE_OF_DRAIN_POMP = TURNED_ON;
-                eeprom_write(DRAINING_COUNTER,eeprom_read(DRAINING_COUNTER)+1);
+                if (cycle_counter>=CYCLES_IN_ONE_MINUTES) {
+                   eeprom_write(DRAINING_COUNTER,eeprom_read(DRAINING_COUNTER)+1);
+                   cycle_counter=0;
+                };
+                cycle_counter++;
             } else {
                 STATE_OF_DRAIN_POMP = TURNED_OFF;
             };
@@ -230,14 +245,22 @@ void dispatch_work_cycle(char work_cycle_time, char next_state){
             eeprom_write(LAUNDRY_STATE,ERROR);
         } else {
             STATE_OF_WASH_MOTOR = TURNED_ON;
-            eeprom_write(WORK_CYCLE_COUNTER,eeprom_read(WORK_CYCLE_COUNTER)+1);
+            if (cycle_counter>=CYCLES_IN_ONE_MINUTES) {
+                eeprom_write(WORK_CYCLE_COUNTER,eeprom_read(WORK_CYCLE_COUNTER)+1);
+                cycle_counter=0;
+            };
+            cycle_counter++;
         }
     } else if (eeprom_read(DRAINING_COUNTER)<DRAINING_TIME) {
         // drain is pending
         STATE_OF_WATER_TAP  = TURNED_OFF;
         STATE_OF_WASH_MOTOR = TURNED_OFF;
         STATE_OF_DRAIN_POMP = TURNED_ON;
-        eeprom_write(DRAINING_COUNTER,eeprom_read(DRAINING_COUNTER)+1);
+        if (cycle_counter>=CYCLES_IN_ONE_MINUTES) {
+            eeprom_write(DRAINING_COUNTER,eeprom_read(DRAINING_COUNTER)+1);
+            cycle_counter=0;
+        };
+        cycle_counter++;
     } else {
         reset_counters();
         eeprom_write(LAUNDRY_STATE,next_state);
@@ -246,6 +269,7 @@ void dispatch_work_cycle(char work_cycle_time, char next_state){
 
 
 void reset_counters(void){
+    cycle_counter = 0;
     eeprom_write(FILLING_COUNTER,0);
     eeprom_write(WORK_CYCLE_COUNTER,0);
     eeprom_write(DRAINING_COUNTER,0);
