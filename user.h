@@ -56,7 +56,7 @@
 #define FLUSHING_TIME          5
 #define DRAINING_TIME          5
 
-#define FILLING_TICKS_AMOUNT   5
+#define FILLING_TICKS_AMOUNT   10
 
 __EEPROM_DATA(IS_OFF,0,IS_OFF,0x00,0x00,0x00,0x00,0x00);
 
@@ -70,7 +70,8 @@ enum laundry_state {
     ACID_WASHING,
     FLUSHING,
     COMPLETED,
-    PAUSED
+    PAUSED,
+    ERROR
 };
 
 unsigned char temp;
@@ -87,6 +88,7 @@ void InitApp(void);         /* I/O and Peripheral Initialization */
 void dispatch_buttons_leds_sensors(void);
 void dispatch_tap_motor_drain(void);
 void dispatch_work_cycle(char work_cycle_time, char next_state);
+void dispatch_error_cycle(void);
 
 void reset_counters(void);
 void stop_all(void);

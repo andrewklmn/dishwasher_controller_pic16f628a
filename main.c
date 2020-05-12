@@ -32,10 +32,24 @@ void main(void)
     /* Initialize I/O and Peripherals for application */
     InitApp();
 
-
     while(1)
     {
-        if (eeprom_read(SYSTEM_STATE)==IS_ON) {
+        if (SENSOR_OF_WATER_ON_FLOOR==IS_ON) {
+            //water on the floor detected
+            eeprom_write(SYSTEM_STATE,IS_ON);
+            eeprom_write(DISHWASHER_PAUSED_FLAG,IS_OFF);
+            
+            STATE_OF_WASH_MOTOR = TURNED_OFF;
+            STATE_OF_WATER_TAP  = TURNED_OFF;
+            
+            reset_counters();
+            eeprom_write(LAUNDRY_STATE,ERROR);
+            
+            dispatch_buttons_leds_sensors();
+            dispatch_tap_motor_drain();
+        
+        } else if (eeprom_read(SYSTEM_STATE)==IS_ON) {
+        
             if (eeprom_read(DISHWASHER_PAUSED_FLAG)==IS_OFF) {
                 dispatch_buttons_leds_sensors();
                 dispatch_tap_motor_drain();

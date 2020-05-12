@@ -57,9 +57,16 @@ void InitApp(void)
     INTCON = 0b10011000;
     INTEDG = 0; 
     
-    //eeprom_write(0x00, 10);
-    
-}
+    // check previous state after restore AC power
+    switch(eeprom_read(LAUNDRY_STATE)) {
+        case ADD_DETERGENT:
+        case ADD_LEMON_ACID:
+            if (SENSOR_OF_WATER_LEVEL==IS_ON) {
+                eeprom_write(LAUNDRY_STATE,ERROR);
+            };
+            break;
+    };
+};
 
 void dispatch_buttons_leds_sensors(void) {
     switch(eeprom_read(LAUNDRY_STATE)) {
@@ -126,6 +133,15 @@ void dispatch_buttons_leds_sensors(void) {
                     LED_STOPPED = LIGHT_OFF;
                     break;
                     
+                case ERROR:
+                    // wash cycle is complete - OPEN THE DOOR FOR DRYING
+                    LED1 = !LED1;
+                    LED2 = !LED2;
+                    LED3 = !LED3;
+                    LED_POWER = !LED_POWER;
+                    LED_STOPPED = !LED_STOPPED;
+                    break;
+                    
                 default:
                     LED1 = LIGHT_OFF;
                     LED2 = LIGHT_OFF;
@@ -163,6 +179,9 @@ void dispatch_tap_motor_drain(void){
         case FLUSHING:
             dispatch_work_cycle(FLUSHING_TIME,COMPLETED);
             break;
+        case ERROR:
+            dispatch_error_cycle();
+            break;
         default:
             STATE_OF_WASH_MOTOR = TURNED_OFF;
             STATE_OF_DRAIN_POMP = TURNED_OFF;
@@ -171,20 +190,48 @@ void dispatch_tap_motor_drain(void){
     };
 };
 
+void dispatch_error_cycle(void){
+            STATE_OF_WASH_MOTOR = TURNED_OFF;
+            STATE_OF_WATER_TAP  = TURNED_OFF;
+            
+            if (SENSOR_OF_WATER_LEVEL==IS_ON
+                && eeprom_read(DRAINING_COUNTER)==DRAINING_TIME) {
+                eeprom_write(DRAINING_COUNTER,0);
+            };
+            if (eeprom_read(DRAINING_COUNTER)<DRAINING_TIME) {
+                // drain is pending
+                STATE_OF_DRAIN_POMP = TURNED_ON;
+                eeprom_write(DRAINING_COUNTER,eeprom_read(DRAINING_COUNTER)+1);
+            } else {
+                STATE_OF_DRAIN_POMP = TURNED_OFF;
+            };
+};
+
 
 void dispatch_work_cycle(char work_cycle_time, char next_state){
-    if (eeprom_read(FILLING_COUNTER)<FILLING_TICKS_AMOUNT) {
+    
+    if ( eeprom_read(FILLING_COUNTER)<FILLING_TICKS_AMOUNT) {
         // filling is pending
         STATE_OF_WASH_MOTOR = TURNED_OFF;
         STATE_OF_DRAIN_POMP = TURNED_OFF;
-        STATE_OF_WATER_TAP  = TURNED_ON;        
+        if (SENSOR_OF_WATER_LEVEL==IS_OFF) {
+            STATE_OF_WATER_TAP  = TURNED_ON;
+        } else {
+            STATE_OF_WATER_TAP  = TURNED_OFF;
+            eeprom_write(FILLING_COUNTER,FILLING_TICKS_AMOUNT);            
+        };
     } else if (eeprom_read(WORK_CYCLE_COUNTER)<work_cycle_time) {
         // washing is pending
         STATE_OF_DRAIN_POMP = TURNED_OFF;
         STATE_OF_WATER_TAP  = TURNED_OFF;
-        STATE_OF_WASH_MOTOR = TURNED_ON;
-        eeprom_write(WORK_CYCLE_COUNTER,eeprom_read(WORK_CYCLE_COUNTER)+1);
-                
+        if (SENSOR_OF_WATER_LEVEL==IS_OFF) {
+            stop_all();
+            reset_counters();
+            eeprom_write(LAUNDRY_STATE,ERROR);
+        } else {
+            STATE_OF_WASH_MOTOR = TURNED_ON;
+            eeprom_write(WORK_CYCLE_COUNTER,eeprom_read(WORK_CYCLE_COUNTER)+1);
+        }
     } else if (eeprom_read(DRAINING_COUNTER)<DRAINING_TIME) {
         // drain is pending
         STATE_OF_WATER_TAP  = TURNED_OFF;

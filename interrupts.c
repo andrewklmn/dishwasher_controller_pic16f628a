@@ -34,7 +34,6 @@ void __interrupt () my_isr_routine (void) {
        INTF=0; 
        
     } else if (RBIF){
-        
         if (BUTTON_OF_POWER==PRESSED) {
             if(eeprom_read(SYSTEM_STATE)==IS_ON){
                 eeprom_write(SYSTEM_STATE,IS_OFF);
@@ -46,7 +45,13 @@ void __interrupt () my_isr_routine (void) {
             
         } else if (BUTTON_OF_START_PAUSE==PRESSED) {
              if(eeprom_read(SYSTEM_STATE)==IS_ON){
-                if (eeprom_read(LAUNDRY_STATE)==ADD_DETERGENT) {
+                if (eeprom_read(LAUNDRY_STATE)==ERROR) {
+                    // start washing cycle with defined timing
+                    if (eeprom_read(DRAINING_COUNTER)>=DRAINING_TIME
+                        && SENSOR_OF_WATER_ON_FLOOR==IS_OFF) {
+                        eeprom_write(LAUNDRY_STATE,ADD_DETERGENT);
+                    };
+                } else if (eeprom_read(LAUNDRY_STATE)==ADD_DETERGENT) {
                     // start washing cycle with defined timing
                     eeprom_write(LAUNDRY_STATE,DETERGENT_WASHING);
                     
