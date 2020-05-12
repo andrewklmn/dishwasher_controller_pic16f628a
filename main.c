@@ -35,7 +35,30 @@ void main(void)
 
     while(1)
     {
-        /* TODO <INSERT USER APPLICATION CODE HERE> */
+        if (eeprom_read(SYSTEM_STATE)==IS_ON) {
+            if (eeprom_read(DISHWASHER_PAUSED_FLAG)==IS_OFF) {
+                dispatch_buttons_leds_sensors();
+                dispatch_tap_motor_drain();
+            } else {
+                
+                LED1 = LIGHT_OFF;
+                LED2 = LIGHT_OFF;
+                LED3 = LIGHT_OFF;
+    
+                LED_POWER = !LED_POWER;
+                LED_STOPPED = LIGHT_OFF;
+    
+                STATE_OF_WASH_MOTOR = TURNED_OFF;
+                STATE_OF_DRAIN_POMP = TURNED_OFF;
+                STATE_OF_WATER_TAP  = TURNED_OFF;
+
+            };
+        } else {
+            stop_all();
+            eeprom_write(LAUNDRY_STATE,ADD_DETERGENT);
+        };
+        
+        __delay_ms(200);
     }
 
 }
