@@ -23,7 +23,6 @@
 
 #define SELECTOR_1                  RA4      //input
 #define SELECTOR_2                  RA5      //input
-#define SELECTOR_3                  RA6      //input
 
 // for LEDs
 #define LIGHT_ON    1
