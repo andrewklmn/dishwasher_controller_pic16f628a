@@ -9,7 +9,7 @@
 
 #include "user.h"
 #include "system.h"
-
+#include "data_storage.h"
 /******************************************************************************/
 /* User Functions                                                             */
 /******************************************************************************/
@@ -59,19 +59,19 @@ void InitApp(void)
     
     
     if (SENSOR_OF_WATER_ON_FLOOR==IS_ON) {
-        eeprom_write(SYSTEM_STATE,IS_ON);
-        eeprom_write(LAUNDRY_STATE,ERROR);
+        data_write(SYSTEM_STATE,IS_ON);
+        data_write(LAUNDRY_STATE,ERROR);
     };
     
     
     // check previous state after restore AC power
-    switch(eeprom_read(LAUNDRY_STATE)) {
+    switch(data_read(LAUNDRY_STATE)) {
         case ADD_DETERGENT:
         case ADD_LEMON_ACID:
         case COMPLETED:
             if (SENSOR_OF_WATER_LEVEL==IS_ON) {
-                eeprom_write(SYSTEM_STATE,IS_ON);
-                eeprom_write(LAUNDRY_STATE,ERROR);
+                data_write(SYSTEM_STATE,IS_ON);
+                data_write(LAUNDRY_STATE,ERROR);
             };
             break;
     };
@@ -80,7 +80,7 @@ void InitApp(void)
 };
 
 void dispatch_buttons_leds_sensors(void) {
-    switch(eeprom_read(LAUNDRY_STATE)) {
+    switch(data_read(LAUNDRY_STATE)) {
                 
                 case ADD_DETERGENT:
                     // ready to start washing - ADD DETERGENT and PRESS START
@@ -159,7 +159,7 @@ void dispatch_buttons_leds_sensors(void) {
                     LED3 = LIGHT_OFF;
                     LED_POWER = LIGHT_OFF;
                     LED_STOPPED = LIGHT_OFF;
-                    eeprom_write(LAUNDRY_STATE,ADD_DETERGENT);
+                    data_write(LAUNDRY_STATE,ADD_DETERGENT);
             };  
 }
 
@@ -180,7 +180,7 @@ void stop_all(void){
 };
 
 void dispatch_tap_motor_drain(void){
-    switch(eeprom_read(LAUNDRY_STATE)){
+    switch(data_read(LAUNDRY_STATE)){
         case DETERGENT_WASHING:
             dispatch_work_cycle(DETERGENT_WASHING_TIME,ADD_LEMON_ACID);
             break;
@@ -189,6 +189,11 @@ void dispatch_tap_motor_drain(void){
             break;
         case FLUSHING:
             dispatch_work_cycle(FLUSHING_TIME,COMPLETED);
+            break;
+        case COMPLETED:
+            STATE_OF_WASH_MOTOR = TURNED_OFF;
+            STATE_OF_DRAIN_POMP = TURNED_OFF;
+            STATE_OF_WATER_TAP  = TURNED_OFF;
             break;
         case ERROR:
             dispatch_error_cycle();
@@ -206,14 +211,14 @@ void dispatch_error_cycle(void){
             STATE_OF_WATER_TAP  = TURNED_OFF;
             
             if (SENSOR_OF_WATER_LEVEL==IS_ON
-                && eeprom_read(DRAINING_COUNTER)==DRAINING_TIME) {
-                eeprom_write(DRAINING_COUNTER,0);
+                && data_read(DRAINING_COUNTER)==DRAINING_TIME) {
+                data_write(DRAINING_COUNTER,0);
             };
-            if (eeprom_read(DRAINING_COUNTER)<DRAINING_TIME) {
+            if (data_read(DRAINING_COUNTER)<DRAINING_TIME) {
                 // drain is pending
                 STATE_OF_DRAIN_POMP = TURNED_ON;
                 if (cycle_counter>=CYCLES_IN_ONE_MINUTES) {
-                   eeprom_write(DRAINING_COUNTER,eeprom_read(DRAINING_COUNTER)+1);
+                   data_write(DRAINING_COUNTER,data_read(DRAINING_COUNTER)+1);
                    cycle_counter=0;
                 };
                 cycle_counter++;
@@ -225,7 +230,12 @@ void dispatch_error_cycle(void){
 
 void dispatch_work_cycle(char work_cycle_time, char next_state){
     
-    if ( eeprom_read(FILLING_COUNTER)<FILLING_TICKS_AMOUNT) {
+    if ( data_read(FILLING_COUNTER)<FILLING_TICKS_AMOUNT) {
+        if (data_read(FILLING_COUNTER)<2 
+            &&  SENSOR_OF_WATER_LEVEL==IS_ON) {
+                data_write(LAUNDRY_STATE,ERROR);
+                return;
+        };
         // filling is pending
         STATE_OF_WASH_MOTOR = TURNED_OFF;
         STATE_OF_DRAIN_POMP = TURNED_OFF;
@@ -233,44 +243,44 @@ void dispatch_work_cycle(char work_cycle_time, char next_state){
             STATE_OF_WATER_TAP  = TURNED_ON;
         } else {
             STATE_OF_WATER_TAP  = TURNED_OFF;
-            eeprom_write(FILLING_COUNTER,FILLING_TICKS_AMOUNT);            
+            data_write(FILLING_COUNTER,FILLING_TICKS_AMOUNT);            
         };
-    } else if (eeprom_read(WORK_CYCLE_COUNTER)<work_cycle_time) {
+    } else if (data_read(WORK_CYCLE_COUNTER)<work_cycle_time) {
         // washing is pending
         STATE_OF_DRAIN_POMP = TURNED_OFF;
         STATE_OF_WATER_TAP  = TURNED_OFF;
         if (SENSOR_OF_WATER_LEVEL==IS_OFF) {
             stop_all();
             reset_counters();
-            eeprom_write(LAUNDRY_STATE,ERROR);
+            data_write(LAUNDRY_STATE,ERROR);
         } else {
             STATE_OF_WASH_MOTOR = TURNED_ON;
             if (cycle_counter>=CYCLES_IN_ONE_MINUTES) {
-                eeprom_write(WORK_CYCLE_COUNTER,eeprom_read(WORK_CYCLE_COUNTER)+1);
+                data_write(WORK_CYCLE_COUNTER,data_read(WORK_CYCLE_COUNTER)+1);
                 cycle_counter=0;
             };
             cycle_counter++;
         }
-    } else if (eeprom_read(DRAINING_COUNTER)<DRAINING_TIME) {
+    } else if (data_read(DRAINING_COUNTER)<DRAINING_TIME) {
         // drain is pending
         STATE_OF_WATER_TAP  = TURNED_OFF;
         STATE_OF_WASH_MOTOR = TURNED_OFF;
         STATE_OF_DRAIN_POMP = TURNED_ON;
         if (cycle_counter>=CYCLES_IN_ONE_MINUTES) {
-            eeprom_write(DRAINING_COUNTER,eeprom_read(DRAINING_COUNTER)+1);
+            data_write(DRAINING_COUNTER,data_read(DRAINING_COUNTER)+1);
             cycle_counter=0;
         };
         cycle_counter++;
     } else {
         reset_counters();
-        eeprom_write(LAUNDRY_STATE,next_state);
+        data_write(LAUNDRY_STATE,next_state);
     };
 };
 
 
 void reset_counters(void){
     cycle_counter = 0;
-    eeprom_write(FILLING_COUNTER,0);
-    eeprom_write(WORK_CYCLE_COUNTER,0);
-    eeprom_write(DRAINING_COUNTER,0);
+    data_write(FILLING_COUNTER,0);
+    data_write(WORK_CYCLE_COUNTER,0);
+    data_write(DRAINING_COUNTER,0);
 }

@@ -15,7 +15,8 @@
 
 #define SENSOR_OF_WATER_COUNTER     RB0      //input
 #define SENSOR_OF_WATER_LEVEL       RB6      //input
-#define SENSOR_OF_WATER_ON_FLOOR    RB5      //input
+#define SENSOR_OF_WATER_ON_FLOOR    RA6      //input
+#define SENSOR_OF_220V              RB5      //input
 
 #define BUTTON_OF_START_PAUSE       RB4      //input
 #define BUTTON_OF_POWER             RB7      //input
@@ -62,7 +63,6 @@
 
 __EEPROM_DATA(IS_OFF,0,IS_OFF,0x00,0x00,0x00,0x00,0x00);
 
-
 /* TODO Application specific user parameters used in user.c may go here */
 
 enum laundry_state {
@@ -94,7 +94,3 @@ void dispatch_error_cycle(void);
 
 void reset_counters(void);
 void stop_all(void);
-
-
-unsigned char eeprom_read(unsigned char address);
-void eeprom_write(unsigned char address, unsigned char value);

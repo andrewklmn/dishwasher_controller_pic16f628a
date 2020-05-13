@@ -14,6 +14,7 @@
 
 #include "system.h"        /* System funct/params, like osc/peripheral config */
 #include "user.h"          /* User funct/params, such as InitApp */
+#include "data_storage.h"
 
 /******************************************************************************/
 /* User Global Variable Declaration                                           */
@@ -24,33 +25,35 @@
 /******************************************************************************/
 /* Main Program                                                               */
 /******************************************************************************/
-void main(void)
+int main(void)
 {
     /* Configure the oscillator for the device */
     ConfigureOscillator();
 
     /* Initialize I/O and Peripherals for application */
     InitApp();
-
+    
+    read_data_from_eeprom();
+    
     while(1)
     {
         if (SENSOR_OF_WATER_ON_FLOOR==IS_ON) {
             //water on the floor detected
-            eeprom_write(SYSTEM_STATE,IS_ON);
-            eeprom_write(DISHWASHER_PAUSED_FLAG,IS_OFF);
+            data_write(SYSTEM_STATE,IS_ON);
+            data_write(DISHWASHER_PAUSED_FLAG,IS_OFF);
             
             STATE_OF_WASH_MOTOR = TURNED_OFF;
             STATE_OF_WATER_TAP  = TURNED_OFF;
             
             reset_counters();
-            eeprom_write(LAUNDRY_STATE,ERROR);
+            data_write(LAUNDRY_STATE,ERROR);
             
             dispatch_buttons_leds_sensors();
             dispatch_tap_motor_drain();
         
-        } else if (eeprom_read(SYSTEM_STATE)==IS_ON) {
+        } else if (data_read(SYSTEM_STATE)==IS_ON) {
         
-            if (eeprom_read(DISHWASHER_PAUSED_FLAG)==IS_OFF) {
+            if (data_read(DISHWASHER_PAUSED_FLAG)==IS_OFF) {
                 dispatch_buttons_leds_sensors();
                 dispatch_tap_motor_drain();
             } else {
@@ -69,11 +72,11 @@ void main(void)
             };
         } else {
             stop_all();
-            eeprom_write(LAUNDRY_STATE,ADD_DETERGENT);
+            data_write(LAUNDRY_STATE,ADD_DETERGENT);
         };
         
-        __delay_ms(200);
+        __delay_ms(500);
     }
-
+    return 0;
 }
 
