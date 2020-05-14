@@ -245,6 +245,12 @@ void dispatch_work_cycle(char work_cycle_time, char next_state){
             STATE_OF_WATER_TAP  = TURNED_OFF;
             data_write(FILLING_COUNTER,FILLING_TICKS_AMOUNT);            
         };
+        
+    } else if (data_read(FILLING_COUNTER)>(FILLING_TICKS_AMOUNT+2)) {
+        // stop if WATER TAP IS CLOSED but water is loading
+        data_write(LAUNDRY_STATE,ERROR);
+        return;
+        
     } else if (data_read(WORK_CYCLE_COUNTER)<work_cycle_time) {
         // washing is pending
         STATE_OF_DRAIN_POMP = TURNED_OFF;
@@ -261,6 +267,7 @@ void dispatch_work_cycle(char work_cycle_time, char next_state){
             };
             cycle_counter++;
         }
+        
     } else if (data_read(DRAINING_COUNTER)<DRAINING_TIME) {
         // drain is pending
         STATE_OF_WATER_TAP  = TURNED_OFF;
