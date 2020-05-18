@@ -145,7 +145,7 @@ void dispatch_buttons_leds_sensors(void) {
                     break;
                     
                 case ERROR:
-                    // wash cycle is complete - OPEN THE DOOR FOR DRYING
+                    
                     LED1 = !LED1;
                     LED2 = !LED2;
                     LED3 = !LED3;
